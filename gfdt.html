@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+                لعبة صيد سمك /علي الصعوب يتمنى لكم الاستمتاع باللعبة
+    <style>
+        body {
+            background: #1E90FF;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Tahoma';
+        }
+        canvas {
+            background: linear-gradient(to bottom, #00BFFF 0%, #000080 100%);
+            border: 3px solid #333;
+            cursor: pointer;
+        }
+        .info { 
+            font-size: 20px; 
+            margin: 10px; 
+            color: white; 
+            font-weight: bold;
+            display: flex;
+            gap: 30px;
+        }
+        #timer {
+            color: yellow;
+            font-size: 24px;
+        }
+        #message {
+            font-size: 28px;
+            color: yellow;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <div>النقاط: <span id="score">0</span></div>
+        <div>الضربات: <span id="shots">20</span></div>
+        <div id="timer">الوقت: 20</div>
+    </div>
+    <canvas id="game" width="800" height="600"></canvas>
+    <div id="message"></div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const shotsEl = document.getElementById('shots');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+
+let score = 0;
+let shots = 20; // عدد الضربات
+let time = 20; //20 ثانية = دقيقة
+let fishes = [];
+let gameOver = false;
+
+function createFish() {
+    if(gameOver || fishes.length > 10) return;
+    const colors = ['orange', 'yellow', 'pink', 'lightgreen', 'cyan', 'red'];
+    fishes.push({
+        x: Math.random() * 700,
+        y: 100 + Math.random() * 400,
+        speed: 1.5 + Math.random() * 2.5,
+        dir: Math.random() > 0.5 ? 1 : -1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 15 + Math.random() * 10
+    });
+}
+
+function drawFish(fish) {
+    ctx.fillStyle = fish.color;
+    ctx.beginPath();
+    ctx.ellipse(fish.x, fish.y, fish.size, fish.size/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // الذيل
+    ctx.beginPath();
+    ctx.moveTo(fish.x - fish.size*fish.dir, fish.y);
+    ctx.lineTo(fish.x - fish.size*1.5*fish.dir, fish.y - fish.size/2);
+    ctx.lineTo(fish.x - fish.size*1.5*fish.dir, fish.y + fish.size/2);
+    ctx.fill();
+    // العين
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(fish.x + fish.size/2*fish.dir, fish.y - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function update() {
+    if(gameOver) return;
+    
+    ctx.clearRect(0, 0, 800, 600);
+    
+    // فقاعات
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    for(let i=0; i<15; i++){
+        ctx.beginPath();
+        ctx.arc(Math.random()*800, Math.random()*600, 2, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    fishes.forEach((fish, index) => {
+        fish.x += fish.speed * fish.dir;
+        if(fish.x > 800 || fish.x < 0) fish.dir *= -1;
+        drawFish(fish);
+    });
+
+    if(Math.random() < 0.04) createFish();
+}
+
+function endGame(reason) {
+    gameOver = true;
+    messageEl.textContent = reason + " نتيجتك: " + score;
+    setTimeout(() => {
+        if(confirm(reason + "\nنقاطك: " + score + "\nبدك تلعب مرة ثانية؟")) {
+            location.reload();
+        }
+    }, 800);
+}
+
+// مؤقت كل ثانية
+setInterval(() => {
+    if(gameOver) return;
+    time--;
+    timerEl.textContent = "الوقت: " + time;
+    
+    if(time <= 0) {
+        endGame("انتهى الوقت!");
+    }
+}, 1000);
+
+canvas.addEventListener('click', (e) => {
+    if(gameOver || shots <= 0) return;
+    
+    shots--;
+    shotsEl.textContent = shots;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    let hit = false;
+    fishes.forEach((fish, index) => {
+        const dist = Math.sqrt((x - fish.x)**2 + (y - fish.y)**2);
+        if(dist < fish.size + 10) {
+            fishes.splice(index, 1);
+            score += 10;
+            scoreEl.textContent = score;
+            hit = true;
+        }
+    });
+
+    // تأثير الشبكة
+    ctx.strokeStyle = hit ? 'yellow' : 'white';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 35, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // لو خلصت الضربات
+    if(shots <= 0) {
+        endGame("انتهت الضربات!");
+    }
+});
+
+setInterval(update, 1000/60);
+setInterval(createFish, 1200);
+</script>
+</body>
+</html>
